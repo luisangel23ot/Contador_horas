@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Registro de Campo Completo</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
+            background-color: #f0f4f8; 
+            padding: 15px; 
+            color: #333; 
+            margin: 0; 
+        }
+        * { box-sizing: border-box; }
+        .contenedor { 
+            background: white; 
+            width: 100%; 
+            max-width: 460px; 
+            margin: 10px auto; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0px 4px 20px rgba(0,0,0,0.06); 
+            border-top: 6px solid #2b6cb0; 
+        }
+        h2 { text-align: center; margin-top: 0; color: #2b6cb0; font-size: 15pt; margin-bottom: 20px; font-weight: 600; }
+        label { font-weight: 600; display: block; margin-top: 14px; margin-bottom: 5px; color: #4a5568; font-size: 10.5pt; }
+        input, button { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #cbd5e0; 
+            font-size: 16px; /* Evita el zoom automático en celulares */
+            background-color: #fff;
+            font-family: inherit;
+        }
+        input:focus { 
+            outline: none; 
+            border-color: #2b6cb0; 
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15); 
+        }
+        .btn-terminar { 
+            background-color: #2b6cb0; 
+            color: white; 
+            border: none; 
+            font-weight: bold; 
+            margin-top: 25px; 
+            padding: 14px;
+            cursor: pointer; 
+            box-shadow: 0 3px 6px rgba(43, 108, 176, 0.2);
+        }
+        .btn-terminar:hover { background-color: #1a446c; }
+        .btn-limpiar {
+            background-color: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            font-weight: 600;
+            margin-top: 10px;
+            padding: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        .mensaje { text-align: center; font-weight: bold; margin-top: 15px; padding: 10px; border-radius: 6px; display: none; font-size: 10pt; }
+    </style>
+</head>
+<body>
+
+<div class="contenedor">
+    <h2>Registro de Actividades</h2>
+    
+    <label>FECHA (Formato DD/MM/YYYY):</label>
+    <input type="text" id="fecha" placeholder="Ej: 27/05/2026">
+
+    <label>equipo principal (Escriba para buscar):</label>
+    <input type="text" id="equipo" list="listaEquipos" placeholder="Buscar o escribir equipo...">
+    <datalist id="listaEquipos"></datalist>
+
+    <label>TAG del Equipo (Escriba para buscar):</label>
+    <input type="text" id="tag" list="listaTags" placeholder="Buscar o escribir TAG...">
+    <datalist id="listaTags"></datalist>
+
+    <label>TIPO ACTIVIDAD:</label>
+    <input type="text" id="area" placeholder="Ej: OPERACION, MECANICO">
+
+    <label>Actividad:</label>
+    <input type="text" id="actividad" placeholder="Describa la tarea">
+
+    <label>NUMERO DE TECNICOS:</label>
+    <input type="text" id="tecnicos" placeholder="Cantidad de personal">
+
+    <label>HORA INICIO (Formato HH:MM:SS):</label>
+    <input type="text" id="horaInicio" placeholder="Ej: 08:00:00"> 
+
+    <label>HORA FINAL (Formato HH:MM:SS):</label>
+    <input type="text" id="horaFin" placeholder="Ej: 16:30:00"> 
+
+    <button id="btnEnviar" class="btn-terminar" onclick="finalizarRegistro()">TERMINAR REGISTRO</button>
+    <button class="btn-limpiar" onclick="limpiarFiltrosActivos()">Limpiar Selección de Activos</button>
+    
+    <div id="txtMensaje" class="mensaje"></div>
+</div>
+
+<script>
+    // ⚠️ PEGA AQUÍ TU URL DE APPS SCRIPT DENTRO DE LAS COMILLAS
+    const URL_EXCEL_ONLINE = "https://script.google.com/macros/s/AKfycbzKuiAHOf867JZqwBN3bRCFiuZHlRZW0C3N_pu-KpbqEMmbRAj28kCJAi9gO-E7aJ7I/exec"; 
+
+    // Datos de respaldo local para pruebas cruzadas
+    let maestroEquipos = {
+        "ANTIINCRUSTANTE F1 - SALA QUIMICOS F1": ["P-902-F1", "P-902-F2"],
+        "COMPRESOR DE AIRE CENTRAL": ["C-101-A"],
+        "BOMBA DE AGUA DE PROCESO": ["B-305", "B-306"]
+    };
+
+    const inputFecha = document.getElementById("fecha");   
+    const inputEquipo = document.getElementById("equipo");
+    const inputTag = document.getElementById("tag");
+    const inputArea = document.getElementById("area");
+    const inputActividad = document.getElementById("actividad");
+    const inputTecnicos = document.getElementById("tecnicos");
+    const inputHoraInicio = document.getElementById("horaInicio");
+    const inputHoraFin = document.getElementById("horaFin");
+    const btnEnviar = document.getElementById("btnEnviar");
+    const txtMensaje = document.getElementById("txtMensaje");
+
+    function mostrarMensaje(texto, color, fondo) {
+        txtMensaje.style.display = "block";
+        txtMensaje.innerText = texto;
+        txtMensaje.style.color = color;
+        txtMensaje.style.backgroundColor = fondo;
+    }
+
+    window.onload = function() {
+        // Pre-llenar fecha y horas actuales sugeridas del sistema/celular
+        const hoy = new Date();
+        inputFecha.value = hoy.toLocaleDateString('es-PE');
+        
+        const ahora = hoy.toLocaleTimeString('es-PE', { hour12: false });
+        inputHoraInicio.value = ahora;
+        inputHoraFin.value = ahora;
+
+        if (URL_EXCEL_ONLINE === "TU_URL_DE_APPS_SCRIPT_AQUI" || URL_EXCEL_ONLINE === "") {
+            mostrarMensaje("Modo de prueba local activa.", "#856404", "#fff3cd");
+            inicializarBuscadores(maestroEquipos);
+        } else {
+            mostrarMensaje("Sincronizando activos con Excel...", "#004085", "#cce5ff");
+            inputEquipo.disabled = true;
+            inputTag.disabled = true;
+
+            fetch(URL_EXCEL_ONLINE)
+            .then(res => res.json())
+            .then(datos => {
+                maestroEquipos = datos;
+                inicializarBuscadores(maestroEquipos);
+                mostrarMensaje("✅ Activos sincronizados con éxito", "#155724", "#d4edda");
+                setTimeout(() => { txtMensaje.style.display = "none"; }, 2000);
+            })
+            .catch(err => {
+                mostrarMensaje("❌ Error de red. Usando copia de respaldo.", "#721c24", "#f8d7da");
+                inicializarBuscadores(maestroEquipos);
+            });
+        }
+    };
+
+    function obtenerTodosLosTags(lista) {
+        let tags = [];
+        Object.values(lista).forEach(arr => {
+            arr.forEach(t => { if(!tags.includes(t)) tags.push(t); });
+        });
+        return tags;
+    }
+
+    // Código de búsqueda y lógica cruzada bidireccional se mantiene óptimo
+    function llenarDatalist(idElemento, elementos) {
+        const dl = document.getElementById(idElemento);
+        dl.innerHTML = "";
+        elementos.forEach(item => { dl.innerHTML += `<option value="${item}"></option>`; });
+    }
+
+    function inicializarBuscadores(lista) {
+        llenarDatalist("listaEquipos", Object.keys(lista));
+        llenarDatalist("listaTags", obtenerTodosLosTags(lista));
+        inputEquipo.disabled = false;
+        inputTag.disabled = false;
+    }
+
+    inputEquipo.addEventListener("input", function() {
+        const val = inputEquipo.value;
+        if (val === "") {
+            llenarDatalist("listaTags", obtenerTodosLosTags(maestroEquipos));
+            return;
+        }
+        if (maestroEquipos[val]) {
+            const tagsDelEquipo = maestroEquipos[val];
+            llenarDatalist("listaTags", tagsDelEquipo);
+            if (tagsDelEquipo.length === 1) {
+                inputTag.value = tagsDelEquipo[0];
+            }
+        } else {
+            let tagsFiltrados = [];
+            Object.keys(maestroEquipos).forEach(eq => {
+                if (eq.toLowerCase().includes(val.toLowerCase())) {
+                    maestroEquipos[eq].forEach(t => { if(!tagsFiltrados.includes(t)) tagsFiltrados.push(t); });
+                }
+            });
+            llenarDatalist("listaTags", tagsFiltrados);
+        }
+    });
+
+    inputTag.addEventListener("input", function() {
+        const val = inputTag.value;
+        if (val === "") {
+            llenarDatalist("listaEquipos", Object.keys(maestroEquipos));
+            return;
+        }
+        let equiposCoincidentes = [];
+        let coincidenciaExactaEquipo = null;
+
+        Object.keys(maestroEquipos).forEach(eq => {
+            let contieneTagParcial = false;
+            maestroEquipos[eq].forEach(t => {
+                if (t.toLowerCase().includes(val.toLowerCase())) contieneTagParcial = true;
+                if (t === val) coincidenciaExactaEquipo = eq;
+            });
+            if (contieneTagParcial) equiposCoincidentes.push(eq);
+        });
+
+        llenarDatalist("listaEquipos", equiposCoincidentes);
+        if (coincidenciaExactaEquipo) {
+            inputEquipo.value = coincidenciaExactaEquipo;
+        }
+    });
+
+    function limpiarFiltrosActivos() {
+        inputEquipo.value = "";
+        inputTag.value = "";
+        inicializarBuscadores(maestroEquipos);
+    }
+
+    function finalizarRegistro() {
+        if (!inputFecha.value || !inputEquipo.value || !inputTag.value || !inputArea.value || !inputActividad.value || !inputTecnicos.value || !inputHoraInicio.value || !inputHoraFin.value) {
+            return alert("Por favor, llene absolutamente todos los campos antes de terminar.");
+        }
+
+        const datosFinales = {
+            fecha: inputFecha.value, // Se envía el valor escrito en el nuevo campo manual
+            equipo: inputEquipo.value,
+            tag: inputTag.value,
+            area: inputArea.value,
+            actividad: inputActividad.value,
+            tecnicos: inputTecnicos.value,
+            horaInicio: inputHoraInicio.value,
+            horaFin: inputHoraFin.value
+        };
+
+        if (URL_EXCEL_ONLINE === "TU_URL_DE_APPS_SCRIPT_AQUI" || URL_EXCEL_ONLINE === "") {
+            alert(`REGISTRO CON FECHA MANUAL (LOCAL):\n\nFecha: ${datosFinales.fecha}\nEquipo: ${datosFinales.equipo}\nTAG: ${datosFinales.tag}\nInicio: ${datosFinales.horaInicio}\nFin: ${datosFinales.horaFin}`);
+            limpiarFiltrosActivos();
+            return;
+        }
+
+        btnEnviar.disabled = true;
+        mostrarMensaje("⏳ Guardando registro en Excel...", "#856404", "#fff3cd");
+
+        fetch(URL_EXCEL_ONLINE, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datosFinales)
+        }).then(() => {
+            alert("¡Registro enviado y guardado correctamente!");
+            limpiarFiltrosActivos();
+            const hoy = new Date();
+            inputFecha.value = hoy.toLocaleDateString('es-PE');
+            const ahora = hoy.toLocaleTimeString('es-PE', { hour12: false });
+            inputHoraInicio.value = ahora;
+            inputHoraFin.value = ahora;
+            btnEnviar.disabled = false;
+            txtMensaje.style.display = "none";
+        }).catch(err => {
+            alert("Error al conectar con el servidor.");
+            btnEnviar.disabled = false;
+            txtMensaje.style.display = "none";
+        });
+    }
+</script>
+</body>
+</html>
