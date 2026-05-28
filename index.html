@@ -30,7 +30,7 @@
             padding: 12px; 
             border-radius: 8px; 
             border: 1px solid #cbd5e0; 
-            font-size: 16px; /* Evita el zoom automático en celulares */
+            font-size: 16px; 
             background-color: #fff;
             font-family: inherit;
         }
@@ -102,17 +102,16 @@
 </div>
 
 <script>
-    // ⚠️ PEGA AQUÍ TU URL DE APPS SCRIPT DENTRO DE LAS COMILLAS
-    const URL_EXCEL_ONLINE = "https://script.google.com/macros/s/AKfycbzKuiAHOf867JZqwBN3bRCFiuZHlRZW0C3N_pu-KpbqEMmbRAj28kCJAi9gO-E7aJ7I/exec"; 
+    // ⚠️ REEMPLAZA ESTO POR TU URL DE GOOGLE APPS SCRIPT
+    const URL_EXCEL_ONLINE = "TU_URL_DE_APPS_SCRIPT_AQUI"; 
 
-    // Datos de respaldo local para pruebas cruzadas
     let maestroEquipos = {
         "ANTIINCRUSTANTE F1 - SALA QUIMICOS F1": ["P-902-F1", "P-902-F2"],
         "COMPRESOR DE AIRE CENTRAL": ["C-101-A"],
         "BOMBA DE AGUA DE PROCESO": ["B-305", "B-306"]
     };
 
-    const inputFecha = document.getElementById("fecha");   
+    const inputFecha = document.getElementById("fecha");
     const inputEquipo = document.getElementById("equipo");
     const inputTag = document.getElementById("tag");
     const inputArea = document.getElementById("area");
@@ -131,10 +130,8 @@
     }
 
     window.onload = function() {
-        // Pre-llenar fecha y horas actuales sugeridas del sistema/celular
         const hoy = new Date();
         inputFecha.value = hoy.toLocaleDateString('es-PE');
-        
         const ahora = hoy.toLocaleTimeString('es-PE', { hour12: false });
         inputHoraInicio.value = ahora;
         inputHoraFin.value = ahora;
@@ -170,7 +167,6 @@
         return tags;
     }
 
-    // Código de búsqueda y lógica cruzada bidireccional se mantiene óptimo
     function llenarDatalist(idElemento, elementos) {
         const dl = document.getElementById(idElemento);
         dl.innerHTML = "";
@@ -219,10 +215,10 @@
         Object.keys(maestroEquipos).forEach(eq => {
             let contieneTagParcial = false;
             maestroEquipos[eq].forEach(t => {
-                if (t.toLowerCase().includes(val.toLowerCase())) contieneTagParcial = true;
+                if (t.toLowerCase().includes(val.toLowerCase())) containsPartial = true;
                 if (t === val) coincidenciaExactaEquipo = eq;
             });
-            if (contieneTagParcial) equiposCoincidentes.push(eq);
+            if (contieneTagParcial || coincidenciaExactaEquipo) equiposCoincidentes.push(eq);
         });
 
         llenarDatalist("listaEquipos", equiposCoincidentes);
@@ -243,7 +239,7 @@
         }
 
         const datosFinales = {
-            fecha: inputFecha.value, // Se envía el valor escrito en el nuevo campo manual
+            fecha: inputFecha.value,
             equipo: inputEquipo.value,
             tag: inputTag.value,
             area: inputArea.value,
@@ -252,12 +248,6 @@
             horaInicio: inputHoraInicio.value,
             horaFin: inputHoraFin.value
         };
-
-        if (URL_EXCEL_ONLINE === "TU_URL_DE_APPS_SCRIPT_AQUI" || URL_EXCEL_ONLINE === "") {
-            alert(`REGISTRO CON FECHA MANUAL (LOCAL):\n\nFecha: ${datosFinales.fecha}\nEquipo: ${datosFinales.equipo}\nTAG: ${datosFinales.tag}\nInicio: ${datosFinales.horaInicio}\nFin: ${datosFinales.horaFin}`);
-            limpiarFiltrosActivos();
-            return;
-        }
 
         btnEnviar.disabled = true;
         mostrarMensaje("⏳ Guardando registro en Excel...", "#856404", "#fff3cd");
