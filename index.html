@@ -25,7 +25,9 @@
         }
         h2 { text-align: center; margin-top: 0; color: #2b6cb0; font-size: 15pt; margin-bottom: 20px; font-weight: 600; }
         label { font-weight: 600; display: block; margin-top: 14px; margin-bottom: 5px; color: #4a5568; font-size: 10.5pt; }
-        input, button { 
+        
+        /* Se agregó 'select' aquí para que el menú desplegable tenga el mismo diseño elegante */
+        input, select, button { 
             width: 100%; 
             padding: 12px; 
             border-radius: 8px; 
@@ -33,8 +35,9 @@
             font-size: 16px; 
             background-color: #fff;
             font-family: inherit;
+            color: #333;
         }
-        input:focus { 
+        input:focus, select:focus { 
             outline: none; 
             border-color: #2b6cb0; 
             box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15); 
@@ -81,7 +84,13 @@
     <datalist id="listaTags"></datalist>
 
     <label>TIPO ACTIVIDAD:</label>
-    <input type="text" id="area" placeholder="Ej: OPERACION, MECANICO">
+    <select id="area">
+        <option value="" disabled selected>--- Seleccione Tipo de Actividad ---</option>
+        <option value="OPERACION">OPERACION</option>
+        <option value="MECANICO">MECANICO</option>
+        <option value="ELECTRICO">ELECTRICO</option>
+        <option value="ADICIONALES">ADICIONALES</option>
+    </select>
 
     <label>Actividad:</label>
     <input type="text" id="actividad" placeholder="Describa la tarea">
@@ -215,10 +224,10 @@
         Object.keys(maestroEquipos).forEach(eq => {
             let contieneTagParcial = false;
             maestroEquipos[eq].forEach(t => {
-                if (t.toLowerCase().includes(val.toLowerCase())) containsPartial = true;
+                if (t.toLowerCase().includes(val.toLowerCase())) contieneTagParcial = true;
                 if (t === val) coincidenciaExactaEquipo = eq;
             });
-            if (contieneTagParcial || coincidenciaExactaEquipo) equiposCoincidentes.push(eq);
+            if (contieneTagParcial) equiposCoincidentes.push(eq);
         });
 
         llenarDatalist("listaEquipos", equiposCoincidentes);
@@ -242,7 +251,7 @@
             fecha: inputFecha.value,
             equipo: inputEquipo.value,
             tag: inputTag.value,
-            area: inputArea.value,
+            area: inputArea.value, // Captura el string seleccionado ("OPERACION", "MECANICO", etc.)
             actividad: inputActividad.value,
             tecnicos: inputTecnicos.value,
             horaInicio: inputHoraInicio.value,
@@ -260,6 +269,10 @@
         }).then(() => {
             alert("¡Registro enviado y guardado correctamente!");
             limpiarFiltrosActivos();
+            
+            // Resetea el dropdown al valor por defecto
+            inputArea.value = ""; 
+            
             const hoy = new Date();
             inputFecha.value = hoy.toLocaleDateString('es-PE');
             const ahora = hoy.toLocaleTimeString('es-PE', { hour12: false });
@@ -274,5 +287,7 @@
         });
     }
 </script>
+</body>
+</html>
 </body>
 </html>
